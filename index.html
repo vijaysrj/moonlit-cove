@@ -11,76 +11,73 @@
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="apple-mobile-web-app-title" content="Moonlit Cove">
 <meta name="theme-color" content="#0E5A73">
+<meta name="color-scheme" content="light only">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Grandstander:wght@400;600;800&display=swap" rel="stylesheet">
 <style>
-:root{
-  --deep:#08303F; --sea:#0E5A73; --foam:#7FD8BE; --sand:#F2C879;
-  --sand-dark:#D9A44E; --paper:#FFF1D0; --coral:#FF6F59; --ink:#1B2430; --gold:#FFC93C;
-}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-html,body{height:100%;overflow:hidden;background:var(--deep)}
-body{font-family:"Grandstander","Comic Sans MS","Trebuchet MS",sans-serif;color:var(--paper);line-height:1.45;font-size:17px;
+html,body{height:100%;overflow:hidden;background:#08303F}
+body{font-family:"Grandstander","Comic Sans MS","Trebuchet MS",sans-serif;color:#FFF1D0;line-height:1.45;font-size:17px;
   user-select:none;-webkit-user-select:none;touch-action:none}
 canvas#c{position:fixed;inset:0;width:100%;height:100%;display:block}
-button{font:inherit;cursor:pointer;border:none}
-button:focus-visible,input:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
-.btn{background:var(--coral);color:var(--paper);font-weight:800;font-size:1.1rem;padding:13px 24px;border-radius:999px;
+button{font:inherit;cursor:pointer;border:none;-webkit-appearance:none;appearance:none;background-color:transparent;color:inherit}
+button:focus-visible,input:focus-visible{outline:3px solid #FFC93C;outline-offset:3px}
+.btn{background:#FF6F59;color:#FFF1D0;font-weight:800;font-size:1.1rem;padding:13px 24px;border-radius:999px;
   box-shadow:0 5px 0 #B9402F;transition:transform .08s,box-shadow .08s}
 .btn:active{transform:translateY(4px);box-shadow:0 1px 0 #B9402F}
-.btn.quiet{background:transparent;color:var(--sea);box-shadow:none;border:2px solid var(--sea);padding:9px 18px;font-size:1rem}
+.btn.quiet{background:transparent;color:#0E5A73;box-shadow:none;border:2px solid #0E5A73;padding:9px 18px;font-size:1rem}
 
 /* HUD */
 .hud{position:fixed;left:0;right:0;top:0;padding:12px;display:flex;justify-content:space-between;align-items:flex-start;gap:8px;pointer-events:none;z-index:5}
 .hud > *{pointer-events:auto}
 .pill{background:rgba(8,48,63,.78);border-radius:999px;padding:7px 14px;font-weight:700;white-space:nowrap;font-size:.95rem}
 .hud-left{display:flex;flex-direction:column;gap:8px;align-items:flex-start}
-#scrapsBtn{background:var(–paper);color:var(–ink);border-radius:999px;padding:7px 14px;font-weight:800;font-size:.95rem;box-shadow:0 3px 0 var(–sand-dark)}
-#toast{position:fixed;left:50%;top:98px;transform:translateX(-50%);background:var(–paper);color:var(–ink);font-weight:800;
+#scrapsBtn{background:#FFF1D0;color:#1B2430;border-radius:999px;padding:7px 14px;font-weight:800;font-size:.95rem;box-shadow:0 3px 0 #D9A44E}
+#toast{position:fixed;left:50%;top:98px;transform:translateX(-50%);background:#FFF1D0;color:#1B2430;font-weight:800;
 padding:10px 18px;border-radius:16px;max-width:88vw;text-align:center;z-index:6;opacity:0;transition:opacity .25s;pointer-events:none;font-size:1.05rem}
 #toast.show{opacity:1}
 
 /* Joystick + action */
-#joy{position:fixed;left:22px;bottom:26px;width:130px;height:130px;border-radius:50%;background:var(–deep);
-border:4px solid var(–paper);box-shadow:0 6px 16px rgba(0,0,0,.35);z-index:5;touch-action:none}
-#joy .arr{position:absolute;color:var(–foam);font-size:16px;font-weight:800;line-height:1;pointer-events:none}
+#joy{position:fixed;background-color:#08303F;isolation:isolate;left:22px;bottom:26px;width:130px;height:130px;border-radius:50%;background:#08303F;
+border:4px solid #FFF1D0;box-shadow:0 6px 16px rgba(0,0,0,.35);z-index:5;touch-action:none}
+#joy .arr{position:absolute;color:#7FD8BE;font-size:16px;font-weight:800;line-height:1;pointer-events:none}
 #joy .up{top:8px;left:50%;transform:translateX(-50%)} #joy .down{bottom:8px;left:50%;transform:translateX(-50%) rotate(180deg)}
 #joy .left{left:9px;top:50%;transform:translateY(-50%) rotate(-90deg)} #joy .right{right:9px;top:50%;transform:translateY(-50%) rotate(90deg)}
-#knob{position:absolute;left:50%;top:50%;width:60px;height:60px;margin:-30px 0 0 -30px;border-radius:50%;background:var(–coral);
-border:4px solid var(–paper);box-shadow:0 4px 0 #B9402F}
+#knob{position:absolute;left:50%;top:50%;width:60px;height:60px;margin:-30px 0 0 -30px;border-radius:50%;background:#FF6F59;
+border:4px solid #FFF1D0;box-shadow:0 4px 0 #B9402F}
 #action{position:fixed;right:20px;bottom:40px;z-index:5;display:none;font-size:1.2rem;padding:18px 26px}
 #action.show{display:block}
 .hint{position:fixed;left:50%;bottom:12px;transform:translateX(-50%);font-size:.8rem;color:rgba(255,241,208,.75);z-index:4;white-space:nowrap}
-#soundBtn{background:rgba(8,48,63,.78);color:var(–paper);border-radius:999px;width:40px;height:40px;font-size:18px}
+#soundBtn{background:rgba(8,48,63,.78);color:#FFF1D0;border-radius:999px;width:40px;height:40px;font-size:18px}
 
 /* Overlays */
 .overlay{position:fixed;inset:0;background:rgba(8,48,63,.72);display:none;align-items:center;justify-content:center;padding:16px;z-index:10}
 .overlay.open{display:flex}
-.card{background:var(–paper);color:var(–ink);border-radius:24px;padding:22px 20px;width:min(460px,100%);border:4px solid var(–sand);
+.card{background:#FFF1D0;color:#1B2430;border-radius:24px;padding:22px 20px;width:min(460px,100%);border:4px solid #F2C879;
 text-align:center;max-height:92vh;overflow:auto}
 .card .big{font-size:46px;line-height:1.1}
-.card h3{font-size:1.4rem;color:var(–sea);margin:4px 0 10px}
+.card h3{font-size:1.4rem;color:#0E5A73;margin:4px 0 10px}
 .card p.q{font-size:1.15rem;font-weight:600;margin-bottom:16px}
 .opts{display:grid;gap:10px}
-.opt{background:#fff;color:var(–ink);border:3px solid var(–sand);border-radius:16px;padding:12px;font-size:1.05rem;font-weight:600}
-.opt.wrong{border-color:var(–coral);color:#9A3324;background:#FFE4DE;text-decoration:line-through;animation:shake .35s}
+.opt{background:#fff;color:#1B2430;border:3px solid #F2C879;border-radius:16px;padding:12px;font-size:1.05rem;font-weight:600}
+.opt.wrong{border-color:#FF6F59;color:#9A3324;background:#FFE4DE;text-decoration:line-through;animation:shake .35s}
 .opt.right{border-color:#2E9C7A;background:#D7F5EA}
 @keyframes shake{25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
 .feedback{min-height:1.5em;margin-top:12px;font-weight:600;color:#9A3324}
-.clue-reveal{background:var(–sand);border-radius:14px;padding:12px;margin:12px 0 16px;font-weight:600}
+.clue-reveal{background:#F2C879;border-radius:14px;padding:12px;margin:12px 0 16px;font-weight:600}
 .actions{display:flex;justify-content:center;gap:12px;margin-top:16px;flex-wrap:wrap}
 .scrolllist{text-align:left;padding-left:22px;margin:6px 0}
 .scrolllist li{margin:6px 0}
 .muted{color:#6B6455}
 
 /* Start */
-#start .card{background:var(–deep);color:var(–paper);border-color:var(–foam)}
-#start h1{font-size:2.4rem;line-height:1.05;font-weight:800;color:var(–sand)}
-#start h1 span{display:block;font-size:1.05rem;font-weight:600;color:var(–foam);margin-bottom:4px}
+#start .card{background:#08303F;color:#FFF1D0;border-color:#7FD8BE}
+#start h1{font-size:2.4rem;line-height:1.05;font-weight:800;color:#F2C879}
+#start h1 span{display:block;font-size:1.05rem;font-weight:600;color:#7FD8BE;margin-bottom:4px}
 #start p{margin:12px auto;max-width:34ch;color:#D8E9E4}
-#start input{font:inherit;font-size:1.2rem;text-align:center;padding:11px 16px;border-radius:14px;border:3px solid var(–sand);
-background:var(–paper);color:var(–ink);width:min(260px,100%);margin:6px 0 14px;user-select:text;-webkit-user-select:text}
-#loading{color:var(–foam);font-weight:600}
+#start input{font:inherit;font-size:1.2rem;text-align:center;padding:11px 16px;border-radius:14px;border:3px solid #F2C879;
+background:#FFF1D0;color:#1B2430;width:min(260px,100%);margin:6px 0 14px;user-select:text;-webkit-user-select:text}
+#loading{color:#7FD8BE;font-weight:600}
 .stars{font-size:2.2rem;letter-spacing:4px;color:#E0A100}
 .coin{position:fixed;top:-30px;font-size:26px;pointer-events:none;animation:fall linear forwards;z-index:20}
 @keyframes fall{to{transform:translateY(110vh) rotate(540deg)}}
