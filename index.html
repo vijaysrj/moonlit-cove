@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Moonlit Cove 3D</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Grandstander:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --deep:#08303F; --sea:#0E5A73; --foam:#7FD8BE; --sand:#F2C879;
+  --sand-dark:#D9A44E; --paper:#FFF1D0; --coral:#FF6F59; --ink:#1B2430; --gold:#FFC93C;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden;background:var(--deep)}
+body{font-family:"Grandstander","Comic Sans MS","Trebuchet MS",sans-serif;color:var(--paper);line-height:1.45;font-size:17px;
+  user-select:none;-webkit-user-select:none;touch-action:none}
+canvas#c{position:fixed;inset:0;width:100%;height:100%;display:block}
+button{font:inherit;cursor:pointer;border:none}
+button:focus-visible,input:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
+.btn{background:var(--coral);color:var(--paper);font-weight:800;font-size:1.1rem;padding:13px 24px;border-radius:999px;
+  box-shadow:0 5px 0 #B9402F;transition:transform .08s,box-shadow .08s}
+.btn:active{transform:translateY(4px);box-shadow:0 1px 0 #B9402F}
+.btn.quiet{background:transparent;color:var(--sea);box-shadow:none;border:2px solid var(--sea);padding:9px 18px;font-size:1rem}
+
+/* HUD */
+.hud{position:fixed;left:0;right:0;top:0;padding:12px;display:flex;justify-content:space-between;align-items:flex-start;gap:8px;pointer-events:none;z-index:5}
+.hud > *{pointer-events:auto}
+.pill{background:rgba(8,48,63,.78);border-radius:999px;padding:7px 14px;font-weight:700;white-space:nowrap;font-size:.95rem}
+.hud-left{display:flex;flex-direction:column;gap:8px;align-items:flex-start}
+#scrapsBtn{background:var(–paper);color:var(–ink);border-radius:999px;padding:7px 14px;font-weight:800;font-size:.95rem;box-shadow:0 3px 0 var(–sand-dark)}
+#toast{position:fixed;left:50%;top:98px;transform:translateX(-50%);background:var(–paper);color:var(–ink);font-weight:800;
+padding:10px 18px;border-radius:16px;max-width:88vw;text-align:center;z-index:6;opacity:0;transition:opacity .25s;pointer-events:none;font-size:1.05rem}
+#toast.show{opacity:1}
+
+/* Joystick + action */
+#joy{position:fixed;left:22px;bottom:26px;width:120px;height:120px;border-radius:50%;background:rgba(255,241,208,.16);
+border:3px solid rgba(255,241,208,.45);z-index:5;touch-action:none}
+#knob{position:absolute;left:50%;top:50%;width:54px;height:54px;margin:-27px 0 0 -27px;border-radius:50%;background:var(–paper);
+box-shadow:0 3px 0 var(–sand-dark)}
+#action{position:fixed;right:20px;bottom:40px;z-index:5;display:none;font-size:1.2rem;padding:18px 26px}
+#action.show{display:block}
+.hint{position:fixed;left:50%;bottom:12px;transform:translateX(-50%);font-size:.8rem;color:rgba(255,241,208,.75);z-index:4;white-space:nowrap}
+#soundBtn{background:rgba(8,48,63,.78);color:var(–paper);border-radius:999px;width:40px;height:40px;font-size:18px}
+
+/* Overlays */
+.overlay{position:fixed;inset:0;background:rgba(8,48,63,.72);display:none;align-items:center;justify-content:center;padding:16px;z-index:10}
+.overlay.open{display:flex}
+.card{background:var(–paper);color:var(–ink);border-radius:24px;padding:22px 20px;width:min(460px,100%);border:4px solid var(–sand);
+text-align:center;max-height:92vh;overflow:auto}
+.card .big{font-size:46px;line-height:1.1}
+.card h3{font-size:1.4rem;color:var(–sea);margin:4px 0 10px}
+.card p.q{font-size:1.15rem;font-weight:600;margin-bottom:16px}
+.opts{display:grid;gap:10px}
+.opt{background:#fff;color:var(–ink);border:3px solid var(–sand);border-radius:16px;padding:12px;font-size:1.05rem;font-weight:600}
+.opt.wrong{border-color:var(–coral);color:#9A3324;background:#FFE4DE;text-decoration:line-through;animation:shake .35s}
+.opt.right{border-color:#2E9C7A;background:#D7F5EA}
+@keyframes shake{25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+.feedback{min-height:1.5em;margin-top:12px;font-weight:600;color:#9A3324}
+.clue-reveal{background:var(–sand);border-radius:14px;padding:12px;margin:12px 0 16px;font-weight:600}
+.actions{display:flex;justify-content:center;gap:12px;margin-top:16px;flex-wrap:wrap}
+.scrolllist{text-align:left;padding-left:22px;margin:6px 0}
+.scrolllist li{margin:6px 0}
+.muted{color:#6B6455}
+
+/* Start */
+#start .card{background:var(–deep);color:var(–paper);border-color:var(–foam)}
+#start h1{font-size:2.4rem;line-height:1.05;font-weight:800;color:var(–sand)}
+#start h1 span{display:block;font-size:1.05rem;font-weight:600;color:var(–foam);margin-bottom:4px}
+#start p{margin:12px auto;max-width:34ch;color:#D8E9E4}
+#start input{font:inherit;font-size:1.2rem;text-align:center;padding:11px 16px;border-radius:14px;border:3px solid var(–sand);
+background:var(–paper);color:var(–ink);width:min(260px,100%);margin:6px 0 14px;user-select:text;-webkit-user-select:text}
+#loading{color:var(–foam);font-weight:600}
+.stars{font-size:2.2rem;letter-spacing:4px;color:#E0A100}
+.coin{position:fixed;top:-30px;font-size:26px;pointer-events:none;animation:fall linear forwards;z-index:20}
+@keyframes fall{to{transform:translateY(110vh) rotate(540deg)}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}.coin{display:none}}
+</style>
+
+</head>
+<body>
+<canvas id="c"></canvas>
+
+<div class="hud">
+  <div class="hud-left">
+    <span class="pill" id="keysPill">🗝️ 0 / 8</span>
+    <button id="scrapsBtn">📜 Map scraps</button>
+  </div>
+  <div class="hud-left" style="align-items:flex-end">
+    <span class="pill" id="shovelPill">⛏️ 14 shovels</span>
+    <button id="soundBtn" aria-label="Turn sound off">🔊</button>
+  </div>
+</div>
+<div id="toast" aria-live="polite"></div>
+<div id="joy" aria-hidden="true"><div id="knob"></div></div>
+<button class="btn" id="action"></button>
+<div class="hint" id="hint">Drag the circle, use arrow keys, or tap the ground to walk</div>
+
+<div class="overlay open" id="start">
+  <div class="card">
+    <h1><span>The secret of</span>Moonlit Cove</h1>
+    <p>Captain Pearl hid her treasure under the sand in the middle of the island. Walk to the 8 glowing spots to solve riddles and collect map scraps. Then go to the dig site and find the chest before your shovels run out.</p>
+    <label for="nameIn">What's your explorer name?</label><br>
+    <input id="nameIn" maxlength="16" placeholder="Your name" autocomplete="off"><br>
+    <button class="btn" id="startBtn" disabled>Set sail</button>
+    <p id="loading">Building the island…</p>
+  </div>
+</div>
+<div class="overlay" id="riddle" role="dialog" aria-modal="true"><div class="card" id="rcard"></div></div>
+<div class="overlay" id="scraps" role="dialog" aria-modal="true"><div class="card" id="scard"></div></div>
+<div class="overlay" id="endo" role="dialog" aria-modal="true"><div class="card" id="ecard"></div></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+<script>
+const $ = s => document.querySelector(s);
+const rnd = (a,b) => a + Math.random()*(b-a);
+const pick = a => a[Math.floor(Math.random()*a.length)];
+const shuffle = a => { a=[...a]; for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]} return a; };
+
+if(!window.THREE){ $("#loading").textContent = "Couldn't load the 3D engine. Check your internet connection and reload."; throw new Error("no three"); }
+
+/* ---------------- data ---------------- */
+const COLS = "ABCDEFGHIJ", N = 10, TILE = 1.6, HALF = N*TILE/2, SHOVELS = 14;
+const LANDMARKS = [
+  {id:"lighthouse", name:"Lighthouse",   x:30,  z:-26, r:2.2},
+  {id:"palms",      name:"Palm grove",   x:-22, z:-20, r:2.6},
+  {id:"turtle",     name:"Turtle rock",  x:-31, z:4,   r:3.2},
+  {id:"waterfall",  name:"Waterfall",    x:0,   z:-31, r:3.6},
+  {id:"ship",       name:"Shipwreck",    x:28,  z:22,  r:3.8},
+  {id:"hut",        name:"Fisher's hut", x:-20, z:25,  r:2.8},
+  {id:"totem",      name:"Totem pole",   x:31,  z:0,   r:1.4},
+  {id:"cave",       name:"Crystal cave", x:14,  z:-19, r:3.0},
+];
+const RIDDLES = [
+  {q:"What has keys but can't open a single lock?", a:"A piano", w:["A door","A treasure chest"]},
+  {q:"What gets wetter the more it dries?", a:"A towel", w:["A sponge","The sea"]},
+  {q:"I have a head and a tail, but no body. What am I?", a:"A coin", w:["A snake","A comet"]},
+  {q:"The more of me you take, the more you leave behind. What am I?", a:"Footsteps", w:["Sand","Shells"]},
+  {q:"What can travel all around the world while staying in one corner?", a:"A stamp", w:["A map","A compass"]},
+  {q:"What has lots of teeth but can't bite?", a:"A comb", w:["A shark","A crab"]},
+  {q:"What goes up but never comes down?", a:"Your age", w:["A balloon","The tide"]},
+  {q:"What has hands but can't clap?", a:"A clock", w:["An octopus","A starfish"]},
+  {q:"I'm full of holes, yet I still hold water. What am I?", a:"A sponge", w:["A fishing net","A bucket"]},
+  {q:"What belongs to you, but other people use it more than you do?", a:"Your name", w:["Your hat","Your boat"]},
+  {q:"What runs but never walks, and has a mouth but never talks?", a:"A river", w:["A pirate","The wind"]},
+  {q:"A pirate has 24 coins and gives a third of them to her parrot. How many does she keep?", a:"16", w:["8","12"]},
+  {q:"Three chests hold 7 pearls each. You find 4 more pearls in the sand. How many pearls now?", a:"25", w:["21","28"]},
+  {q:"What has a neck but no head?", a:"A bottle", w:["A giraffe","A lighthouse"]},
+  {q:"Which word gets shorter when you add two letters to it?", a:"Short", w:["Small","Long"]},
+  {q:"What can you catch but never throw?", a:"A cold", w:["A ball","A wave"]},
+  {q:"A ship's clock says 9 o'clock. In 5 hours, what time will it say?", a:"2 o'clock", w:["14 o'clock","4 o'clock"]},
+  {q:"What has four legs in the morning, four at noon, and four at night?", a:"A table", w:["A crab","A cat on a boat"]},
+  {q:"What has lots of words but never speaks?", a:"A book", w:["A parrot","A shell"]},
+  {q:"What has a thumb and four fingers but isn't alive?", a:"A glove", w:["A starfish","A crab claw"]},
+  {q:"What can fill a whole room but takes up no space?", a:"Light", w:["Sand","Water"]},
+  {q:"What kind of band never plays any music?", a:"A rubber band", w:["A pirate band","A brass band"]},
+  {q:"What has one head, one foot and four legs?", a:"A bed", w:["A horse","A ship"]},
+  {q:"How many months of the year have 28 days?", a:"All of them", w:["Just February","None"]},
+  {q:"A turtle walks 3 metres every minute. How far does it walk in 7 minutes?", a:"21 metres", w:["10 metres","24 metres"]},
+  {q:"50 shells are shared equally between 5 friends. How many does each friend get?", a:"10", w:["5","15"]},
+  {q:"What is half of 18, plus 6?", a:"15", w:["12","9"]},
+  {q:"4 parrots each have 2 wings. How many wings altogether?", a:"8", w:["6","16"]},
+  {q:"What comes next? 2, 4, 8, 16, …", a:"32", w:["20","24"]},
+  {q:"What comes next? 1, 3, 6, 10, …", a:"15", w:["13","14"]},
+  {q:"Where does today come before yesterday?", a:"In a dictionary", w:["On a calendar","In a diary"]},
+  {q:"Which word is always spelled wrong in the dictionary?", a:"\"Wrong\"", w:["\"Misspelled\"","\"Dictionary\""]},
+  {q:"What gets bigger the more you take away from it?", a:"A hole", w:["A sandcastle","A pile of coins"]},
+  {q:"I'm tall when I'm young and short when I'm old. What am I?", a:"A candle", w:["A tree","A pirate"]},
+  {q:"What can you break without ever touching it?", a:"A promise", w:["A shell","A window"]},
+  {q:"Which is heavier: a kilo of feathers or a kilo of rocks?", a:"They weigh the same", w:["The rocks","The feathers"]},
+  {q:"How many months have 31 days?", a:"7", w:["5","6"]},
+  {q:"A rope ladder hangs off a ship with 10 rungs above the water. The tide rises by 2 rungs. How many rungs are above the water now?", a:"Still 10, the ship floats up!", w:["8","12"]},
+  {q:"The captain tears 3 maps into 4 pieces each. How many pieces is that?", a:"12", w:["7","9"]},
+  {q:"What has an island in the middle, water all around, and fits in your pocket?", a:"A map", w:["A puddle","A coconut"]},
+  // word problems with negation (not, except, all but, none)
+  {neg:1, q:"A pirate had 15 coins. All but 6 fell into the sea. How many coins does she still have?", a:"6", w:["9","15"]},
+  {neg:1, q:"There are 12 crabs on the beach. 4 of them are NOT red. How many crabs ARE red?", a:"8", w:["4","16"]},
+  {neg:1, q:"Which of these numbers is NOT even?", a:"27", w:["14","30"]},
+  {neg:1, q:"Mia found 20 shells. She kept every shell except the 7 broken ones. How many did she keep?", a:"13", w:["7","27"]},
+  {neg:1, q:"A boat has 9 sailors. None of them are asleep. How many sailors are awake?", a:"9", w:["0","8"]},
+  {neg:1, q:"Which of these is NOT a multiple of 4?", a:"18", w:["12","20"]},
+  {neg:1, q:"The captain has 30 maps. Only 4 of them are NOT torn. How many maps are torn?", a:"26", w:["4","34"]},
+  {neg:1, q:"25 kids went on the boat trip. 8 of them did not bring a hat. How many kids did bring a hat?", a:"17", w:["8","33"]},
+  {neg:1, q:"The treasure is not in the red boat. It is not in the blue boat either. There are only three boats. Where is it?", a:"The green boat", w:["The red boat","The blue boat"]},
+  {neg:1, q:"Zara, Kai and Lu each have one pet: a cat, a dog or a fish. Zara's pet does not have fur. Kai's pet is not a dog. What pet does Lu have?", a:"A dog", w:["A cat","A fish"]},
+  {neg:1, q:"Which of these is NOT true?", a:"10 is less than 7", w:["5 + 5 = 10","3 is an odd number"]},
+  {neg:1, q:"A chest holds 40 pearls. All of them are white except 12. How many pearls are white?", a:"28", w:["12","52"]},
+  {neg:1, q:"Ravi has 18 stickers. He does not give any away. Then he finds 5 more. How many does he have now?", a:"23", w:["13","18"]},
+  {neg:1, q:"Which number is NOT between 10 and 20?", a:"21", w:["11","19"]},
+  {neg:1, q:"There are 6 rowboats and each one holds 4 people. 2 of the boats are not used. How many people can go out on the water?", a:"16", w:["24","8"]},
+  {neg:1, q:"A shop sold 50 ice creams. 15 were not chocolate. How many were chocolate?", a:"35", w:["15","65"]},
+  {neg:1, q:"Which of these shapes does NOT have 4 sides?", a:"A triangle", w:["A square","A rectangle"]},
+  {neg:1, q:"Ana had 10 grapes. She didn't eat 3 of them. How many did she eat?", a:"7", w:["3","13"]},
+  {neg:1, q:"Which word does NOT mean big?", a:"Tiny", w:["Huge","Giant"]},
+  {neg:1, q:"There are 24 fish in a net. Half of them are not striped. How many fish are striped?", a:"12", w:["24","6"]},
+];
+const TREASURES = ["a golden compass that always points home","a crown made of sea glass","a map to an even bigger island",
+  "a telescope that can see the moon's craters","a very sleepy parrot named Biscuit","a music box that plays the sound of waves",
+  "a pearl the size of a tennis ball","a captain's hat with a feather that never gets wet"];
+const TRINKETS = ["🐚","⭐","🦀","💎","🪙","🐙"];
+
+/* ---------------- three setup ---------------- */
+const canvas = $("#c");
+const renderer = new THREE.WebGLRenderer({canvas, antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+const SKY = 0x6CC0D4;
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(SKY);
+scene.fog = new THREE.Fog(SKY, 55, 130);
+const camera = new THREE.PerspectiveCamera(50, innerWidth/innerHeight, 0.1, 400);
+
+scene.add(new THREE.HemisphereLight(0xDFF6FF, 0xF2C879, 0.75));
+const sun = new THREE.DirectionalLight(0xFFF3D6, 0.75);
+sun.castShadow = true;
+sun.shadow.mapSize.set(1024,1024);
+Object.assign(sun.shadow.camera, {left:-28,right:28,top:28,bottom:-28,near:1,far:90});
+scene.add(sun, sun.target);
+
+const matCache = {};
+const M = c => matCache[c] || (matCache[c] = new THREE.MeshPhongMaterial({color:c, flatShading:true, shininess:6}));
+function mesh(geo, color, x=0, y=0, z=0, parent=scene, shadow=true){
+  const m = new THREE.Mesh(geo, typeof color === "number" ? M(color) : color);
+  m.position.set(x,y,z); m.castShadow = shadow; m.receiveShadow = true; parent.add(m); return m;
+}
+function group(x=0,y=0,z=0,parent=scene){ const g=new THREE.Group(); g.position.set(x,y,z); parent.add(g); return g; }
+
+function textSprite(txt, {size=70, color="#1B2430", bg=null, scale=1.2}={}){
+  const cv = document.createElement("canvas"); cv.width = cv.height = 128;
+  const g = cv.getContext("2d");
+  if(bg){ g.fillStyle = bg; g.beginPath(); g.arc(64,64,58,0,Math.PI*2); g.fill(); g.lineWidth=6; g.strokeStyle="#FFF1D0"; g.stroke(); }
+  g.font = `800 ${size}px Grandstander, "Trebuchet MS", sans-serif`;
+  g.textAlign = "center"; g.textBaseline = "middle"; g.fillStyle = color; g.fillText(txt, 64, 70);
+  const s = new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(cv), transparent:true, depthWrite:false}));
+  s.scale.set(scale, scale, 1); return s;
+}
+
+/* ---------------- world ---------------- */
+const colliders = [];   // {x,z,r}
+const animated = [];    // fns(t,dt)
+
+function buildWorld(){
+  const sea = mesh(new THREE.CircleGeometry(260, 64), new THREE.MeshPhongMaterial({color:0x1E86A0, shininess:80}), 0,-0.7,0, scene, false);
+  sea.rotation.x = -Math.PI/2;
+  const shallow = mesh(new THREE.CircleGeometry(54, 48), new THREE.MeshPhongMaterial({color:0x4CC3B6, transparent:true, opacity:.85}), 0,-0.62,0, scene, false);
+  shallow.rotation.x = -Math.PI/2;
+  animated.push(t => { sea.position.y = -0.7 + Math.sin(t*0.8)*0.06; });
+
+  mesh(new THREE.CylinderGeometry(44, 48, 1.2, 48), 0xF2C879, 0,-0.6,0, scene, false);
+  // wobbly grass top
+  const gg = new THREE.CircleGeometry(36, 40);
+  const p = gg.attributes.position;
+  for(let i=1;i<p.count;i++){ const x=p.getX(i), y=p.getY(i), k=1+Math.sin(Math.atan2(y,x)*5)*0.05+Math.sin(Math.atan2(y,x)*11)*0.03; p.setXY(i,x*k,y*k); }
+  const grass = mesh(gg, 0x74C26E, 0,0.02,0, scene, false); grass.rotation.x = -Math.PI/2;
+
+  // dig site
+  const site = mesh(new THREE.BoxGeometry(N*TILE+2, 0.12, N*TILE+2), 0xF2C879, 0,0.02,0, scene, false);
+  for(const [x,z] of [[-1,-1],[1,-1],[1,1],[-1,1]]){
+    mesh(new THREE.CylinderGeometry(.18,.22,1.4,6), 0x8A5A2B, x*(HALF+.8), .7, z*(HALF+.8));
+  }
+  // rope
+  const ropeM = new THREE.LineBasicMaterial({color:0xB9873B});
+  const rp = [[-1,-1],[1,-1],[1,1],[-1,1],[-1,-1]].map(([x,z])=>new THREE.Vector3(x*(HALF+.8),1.2,z*(HALF+.8)));
+  scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(rp), ropeM));
+  // sign
+  const sg = group(0,0,HALF+2.4);
+  mesh(new THREE.CylinderGeometry(.12,.12,1.8,6), 0x8A5A2B, 0,.9,0, sg);
+  mesh(new THREE.BoxGeometry(2.6,.9,.15), 0xD9A44E, 0,1.7,0, sg);
+  const st = textSprite("DIG", {size:52, color:"#5C3D10", scale:1.6}); st.position.set(0,1.72,.1); sg.add(st);
+  // labels
+  for(let i=0;i<N;i++){
+    const a = textSprite(COLS[i], {size:64, color:"#8A5A1E", scale:.9}); a.position.set(-HALF+TILE/2+i*TILE, .5, -HALF-.6); scene.add(a);
+    const b = textSprite(String(i+1), {size:58, color:"#8A5A1E", scale:.9}); b.position.set(-HALF-.6, .5, -HALF+TILE/2+i*TILE); scene.add(b);
+  }
+
+  LANDMARKS.forEach(l => {
+    const g = group(l.x, 0, l.z);
+    BUILD[l.id](g);
+    l.group = g;
+    colliders.push({x:l.x, z:l.z, r:l.r});
+    // beacon
+    const beam = new THREE.Mesh(new THREE.CylinderGeometry(.6,.6,40,12,1,true),
+      new THREE.MeshBasicMaterial({color:0xFF6F59, transparent:true, opacity:.22, depthWrite:false, side:THREE.DoubleSide}));
+    beam.position.set(l.x, 20, l.z); scene.add(beam); l.beam = beam;
+    const top = BEACON_H[l.id];
+    const q = textSprite("?", {bg:"#FF6F59", color:"#FFF1D0", size:80, scale:2}); q.position.set(l.x, top, l.z); scene.add(q); l.marker = q;
+    l.markerY = top;
+  });
+
+  // decor
+  let placed = 0, tries = 0;
+  while(placed < 34 && tries++ < 600){
+    const a = rnd(0, Math.PI*2), r = rnd(6, 41), x = Math.cos(a)*r, z = Math.sin(a)*r;
+    if(Math.abs(x) < HALF+4 && Math.abs(z) < HALF+5) continue;
+    if(LANDMARKS.some(l => Math.hypot(l.x-x, l.z-z) < l.r+5)) continue;
+    if(Math.hypot(x, z-(HALF+6)) < 5) continue;
+    const type = r > 37 ? "rock" : pick(["palm","palm","bush","rock","flowers"]);
+    if(type==="palm"){ palm(group(x,0,z), rnd(3.5,5.5)); colliders.push({x,z,r:.5}); }
+    else if(type==="rock"){ const s=rnd(.5,1.3); mesh(new THREE.DodecahedronGeometry(s,0), 0x9AA3A8, x,s*.5,z).rotation.set(rnd(0,3),rnd(0,3),0); colliders.push({x,z,r:s*.8}); }
+    else if(type==="bush"){ for(let i=0;i<3;i++) mesh(new THREE.IcosahedronGeometry(rnd(.5,.8),0), 0x4E9A57, x+rnd(-.6,.6),.5,z+rnd(-.6,.6)); }
+    else { for(let i=0;i<5;i++){ const fx=x+rnd(-1,1), fz=z+rnd(-1,1); mesh(new THREE.CylinderGeometry(.03,.03,.4,4),0x3E7D3A,fx,.2,fz,scene,false); mesh(new THREE.SphereGeometry(.12,6,4), pick([0xFF6F59,0xFFC93C,0xFFFFFF,0xE07ACF]), fx,.42,fz,scene,false);} }
+    placed++;
+  }
+
+  // moon
+  const moon = new THREE.Mesh(new THREE.SphereGeometry(6,20,14), new THREE.MeshBasicMaterial({color:0xFFF1D0, fog:false}));
+  moon.position.set(-60, 55, -150); scene.add(moon);
+  // clouds
+  for(let i=0;i<7;i++){
+    const c = group(rnd(-120,120), rnd(28,40), rnd(-140,-40));
+    for(let j=0;j<4;j++) mesh(new THREE.IcosahedronGeometry(rnd(2.5,4),0), new THREE.MeshPhongMaterial({color:0xFFFFFF,flatShading:true,emissive:0x8899AA}), j*3.2, rnd(-.6,.6), rnd(-1,1), c, false);
+    const sp = rnd(.6,1.4); animated.push((t,dt)=>{ c.position.x += dt*sp; if(c.position.x>140) c.position.x=-140; });
+  }
+}
+
+function palm(g, h=5){
+  const lean = rnd(-.25,.25);
+  let y = 0;
+  for(let i=0;i<5;i++){
+    const seg = mesh(new THREE.CylinderGeometry(.22-.02*i,.28-.02*i,h/5,7), i%2?0x9C6B3C:0x8A5A2B, lean*y, y+h/10, 0, g);
+    seg.rotation.z = -lean*.6; y += h/5;
+  }
+  const top = group(lean*y, y, 0, g);
+  for(let i=0;i<7;i++){
+    const pivot = group(0,0,0,top); pivot.rotation.y = i/7*Math.PI*2 + rnd(-.2,.2);
+    const leaf = mesh(new THREE.ConeGeometry(.45, 3, 4), 0x3E9E4F, 1.4,-.45,0, pivot);
+    leaf.rotation.z = -(Math.PI/2 + .35); leaf.scale.set(1,1,.25);
+  }
+  for(let i=0;i<3;i++) mesh(new THREE.SphereGeometry(.22,6,5), 0x6B4423, Math.cos(i*2.1)*.35, -.3, Math.sin(i*2.1)*.35, top);
+}
+
+const BEACON_H = {lighthouse:14, palms:8, turtle:5.5, waterfall:9.5, ship:7.5, hut:6.5, totem:7.5, cave:6.5};
+const BUILD = {
+  lighthouse(g){
+    mesh(new THREE.CylinderGeometry(2.4,2.6,.6,10), 0x9AA3A8, 0,.3,0, g);
+    for(let i=0;i<6;i++) mesh(new THREE.CylinderGeometry(1.75-i*.1,1.85-i*.1,1.5,12), i%2?0xFFF1D0:0xE4483A, 0,1.35+i*1.5,0, g);
+    mesh(new THREE.CylinderGeometry(1.6,1.6,.25,12), 0x1B2430, 0,9.7,0, g);
+    const lamp = mesh(new THREE.CylinderGeometry(.8,.8,1.2,10), new THREE.MeshBasicMaterial({color:0xFFE38A}), 0,10.4,0, g, false);
+    mesh(new THREE.ConeGeometry(1.2,1.4,10), 0xE4483A, 0,11.7,0, g);
+    const light = new THREE.PointLight(0xFFD36A, 1, 18); light.position.y = 10.4; g.add(light);
+    animated.push(t=>{ lamp.material.color.setHSL(.13,1,.7+Math.sin(t*3)*.12); });
+    mesh(new THREE.BoxGeometry(.7,1.1,.1), 0x5C3D10, 0,1.1,1.86, g);
+  },
+  palms(g){
+    palm(group(-1.6,0,-.6,g),6); palm(group(1.5,0,-1,g),5.2); palm(group(.2,0,1.6,g),4.6);
+    mesh(new THREE.CylinderGeometry(.6,.7,.6,8), 0x9AA3A8, 0,.3,0, g);
+    const scroll = mesh(new THREE.CylinderGeometry(.18,.18,.9,8), 0xFFF1D0, 0,.75,0, g); scroll.rotation.z = Math.PI/2;
+  },
+  turtle(g){
+    const shell = mesh(new THREE.SphereGeometry(3,10,6,0,Math.PI*2,0,Math.PI/2), 0x5E8B6A, 0,0,0, g); shell.scale.y = .7;
+    for(let i=0;i<6;i++){ const a=i/6*Math.PI*2; mesh(new THREE.CylinderGeometry(.6,.7,.2,6), 0x7FAF85, Math.cos(a)*1.6, 1.6, Math.sin(a)*1.6, g).rotation.set(Math.sin(a)*.6,0,-Math.cos(a)*.6); }
+    mesh(new THREE.CylinderGeometry(.75,.75,.2,6), 0x7FAF85, 0,2.15,0, g);
+    const head = mesh(new THREE.SphereGeometry(.9,8,6), 0x8FB996, 0,.9,3.2, g); head.scale.set(1,.85,1.2);
+    mesh(new THREE.SphereGeometry(.12,6,4), 0x1B2430, .4,1.2,3.95, g); mesh(new THREE.SphereGeometry(.12,6,4), 0x1B2430, -.4,1.2,3.95, g);
+    for(const [x,z] of [[2.4,1.8],[-2.4,1.8],[2.2,-2],[-2.2,-2]]){ const f=mesh(new THREE.SphereGeometry(.8,6,4), 0x8FB996, x,.25,z, g); f.scale.set(1.3,.35,.8); }
+  },
+  waterfall(g){
+    for(let i=0;i<9;i++) mesh(new THREE.DodecahedronGeometry(rnd(1.6,2.4),0), 0x8B949A, rnd(-4,4), rnd(1,6.5), rnd(-2.5,-1), g);
+    mesh(new THREE.BoxGeometry(3,7,2.4), 0x7B848A, 0,3.5,-1.8, g);
+    const cv = document.createElement("canvas"); cv.width=32; cv.height=128;
+    const c = cv.getContext("2d"); for(let y=0;y<128;y+=8){ c.fillStyle = (y/8)%2 ? "#BDEFFF":"#6CCFF0"; c.fillRect(0,y,32,8); for(let x=0;x<32;x+=8){ c.fillStyle="rgba(255,255,255,.5)"; c.fillRect(x+rnd(0,4),y+rnd(0,6),2,3);} }
+    const tex = new THREE.CanvasTexture(cv); tex.wrapS = tex.wrapT = THREE.RepeatWrapping; tex.repeat.set(2,2);
+    const water = new THREE.Mesh(new THREE.PlaneGeometry(2.2,7), new THREE.MeshBasicMaterial({map:tex, transparent:true, opacity:.9}));
+    water.position.set(0,3.5,-.55); g.add(water);
+    animated.push((t,dt)=>{ tex.offset.y += dt*1.2; });
+    const pool = mesh(new THREE.CircleGeometry(2.6,16), new THREE.MeshPhongMaterial({color:0x4CC3E0, shininess:90}), 0,.06,.9, g, false); pool.rotation.x = -Math.PI/2;
+    for(let i=0;i<5;i++){ const f=mesh(new THREE.SphereGeometry(.35,6,4), 0xFFFFFF, rnd(-1,1),.1,rnd(-.2,.4), g, false); const ph=rnd(0,6); animated.push(t=>{ f.scale.setScalar(.8+Math.sin(t*4+ph)*.3); }); }
+  },
+  ship(g){
+    const hull = group(0,0,0,g); hull.rotation.set(.15,.6,.28);
+    mesh(new THREE.BoxGeometry(7,2,3), 0x7A4A26, 0,1,0, hull);
+    const bow = mesh(new THREE.CylinderGeometry(0,1.5,2.5,4,1), 0x7A4A26, 4.2,1,0, hull); bow.rotation.set(Math.PI/4,0,-Math.PI/2); bow.scale.set(1,1,1.4);
+    mesh(new THREE.BoxGeometry(7.2,.25,3.2), 0x5A3418, 0,2.05,0, hull);
+    for(let i=-2;i<=2;i++) mesh(new THREE.CylinderGeometry(.22,.22,.1,8), 0x1B2430, i*1.2,1.2,1.52, hull).rotation.x = Math.PI/2;
+    const mast = mesh(new THREE.CylinderGeometry(.18,.22,5,6), 0x5A3418, -.5,4.3,0, hull); mast.rotation.z = .35;
+    const sail = mesh(new THREE.PlaneGeometry(2.4,2), new THREE.MeshPhongMaterial({color:0xFFF1D0, side:THREE.DoubleSide, flatShading:true}), -1.2,4.6,.1, hull);
+    sail.rotation.set(0,.2,.3);
+    mesh(new THREE.BoxGeometry(.9,.9,.9), 0xA0522D, 2.5,.45,2.6, g).rotation.y = .5;
+  },
+  hut(g){
+    mesh(new THREE.BoxGeometry(3.6,2.4,3), 0xC9A06B, 0,1.2,0, g);
+    const roof = mesh(new THREE.ConeGeometry(3.4,2.2,4), 0xB8862E, 0,3.5,0, g); roof.rotation.y = Math.PI/4;
+    mesh(new THREE.BoxGeometry(1,1.6,.1), 0x5C3D10, 0,.8,1.52, g);
+    mesh(new THREE.BoxGeometry(.7,.7,.1), 0x8FD3F0, 1.1,1.5,1.52, g);
+    for(let i=0;i<3;i++) mesh(new THREE.TorusGeometry(.35,.05,4,10), 0x3E7D3A, -2.1, .9+i*.15, 1.2+i*.1, g).rotation.y = Math.PI/2;
+    const net = mesh(new THREE.CylinderGeometry(.04,.04,2,4), 0x8A5A2B, 2.4,1,1.2, g);
+  },
+  totem(g){
+    const cols = [0xE4483A, 0xFFC93C, 0x2E9C7A, 0x4A7BD0, 0xE4483A];
+    cols.forEach((c,i)=>{
+      mesh(new THREE.CylinderGeometry(.85,.95,1.1,8), c, 0,.55+i*1.1,0, g);
+      mesh(new THREE.BoxGeometry(.3,.3,.1), 0xFFF1D0, .3,.7+i*1.1,.88, g); mesh(new THREE.BoxGeometry(.3,.3,.1), 0xFFF1D0, -.3,.7+i*1.1,.88, g);
+      mesh(new THREE.BoxGeometry(.12,.12,.12), 0x1B2430, .3,.7+i*1.1,.95, g); mesh(new THREE.BoxGeometry(.12,.12,.12), 0x1B2430, -.3,.7+i*1.1,.95, g);
+    });
+    mesh(new THREE.BoxGeometry(4,.4,.6), 0xFFC93C, 0,4.9,0, g);
+    mesh(new THREE.ConeGeometry(.5,.8,4), 0xFF6F59, 0,4.9,1, g).rotation.x = Math.PI/2;
+  },
+  cave(g){
+    const d = mesh(new THREE.SphereGeometry(3,10,7,0,Math.PI*2,0,Math.PI/2), 0x8B949A, 0,0,0, g); d.scale.y = .9;
+    const door = mesh(new THREE.CircleGeometry(1.1,10,0,Math.PI), new THREE.MeshBasicMaterial({color:0x1B1530}), 0,0,2.98, g, false);
+    door.scale.y = 1.4;
+    const cm = [new THREE.MeshPhongMaterial({color:0xB59CFF, emissive:0x5B3FD0, flatShading:true}), new THREE.MeshPhongMaterial({color:0x8FF0FF, emissive:0x1C8FA0, flatShading:true})];
+    for(let i=0;i<9;i++){
+      const a = rnd(-1.2,4.4), r = rnd(2.4,3.4);
+      const c = mesh(new THREE.OctahedronGeometry(rnd(.35,.7),0), cm[i%2], Math.cos(a)*r, rnd(.3,1.6), Math.sin(a)*r*.9 - (Math.sin(a)>.6?1.2:0), g);
+      c.scale.y = 2; c.rotation.z = rnd(-.4,.4);
+      const ph = rnd(0,6); animated.push(t=>{ c.rotation.y = t*.5+ph; });
+    }
+  },
+};
+
+/* ---------------- hero ---------------- */
+const hero = group(0,0,HALF+6);
+const H = {};
+(function buildHero(){
+  const SK = 0xC68B59;
+  H.body = group(0,0,0,hero);
+  mesh(new THREE.CylinderGeometry(.42,.52,1,8), 0xFF6F59, 0,1.05,0, H.body);
+  mesh(new THREE.CylinderGeometry(.53,.53,.12,8), 0x8A5A2B, 0,.62,0, H.body);
+  mesh(new THREE.SphereGeometry(.42,10,8), SK, 0,1.85,0, H.body);
+  const hair = mesh(new THREE.SphereGeometry(.45,10,8), 0x2B1A10, 0,1.92,-.08, H.body); hair.scale.set(1,.9,.95);
+  mesh(new THREE.SphereGeometry(.2,8,6), 0x2B1A10, 0,1.75,-.5, H.body);
+  mesh(new THREE.SphereGeometry(.06,6,4), 0x1B2430, .15,1.88,.38, H.body);
+  mesh(new THREE.SphereGeometry(.06,6,4), 0x1B2430, -.15,1.88,.38, H.body);
+  mesh(new THREE.CylinderGeometry(.78,.78,.06,14), 0xD9A44E, 0,2.17,0, H.body);
+  mesh(new THREE.CylinderGeometry(.36,.42,.36,12), 0xD9A44E, 0,2.36,0, H.body);
+  mesh(new THREE.CylinderGeometry(.43,.43,.1,12), 0x8A5A2B, 0,2.24,0, H.body);
+  mesh(new THREE.BoxGeometry(.6,.7,.3), 0x2E9C7A, 0,1.15,-.5, H.body);
+  const mkLimb = (x,y,len,r,c) => { const p = group(x,y,0,H.body); mesh(new THREE.CylinderGeometry(r,r,len,6), c, 0,-len/2,0, p); return p; };
+  H.legL = mkLimb(.2,.6,.6,.14,0x2C4A7A); H.legR = mkLimb(-.2,.6,.6,.14,0x2C4A7A);
+  H.armL = mkLimb(.55,1.45,.7,.11,SK); H.armR = mkLimb(-.55,1.45,.7,.11,SK);
+  const shovel = group(0,-.65,.1,H.armR);
+  mesh(new THREE.CylinderGeometry(.04,.04,1,5), 0x8A5A2B, 0,0,0, shovel);
+  mesh(new THREE.BoxGeometry(.3,.35,.05), 0x9AA3A8, 0,-.6,0, shovel);
+  H.shovel = shovel; shovel.visible = false;
+})();
+const cursor = new THREE.Mesh(new THREE.PlaneGeometry(TILE*.94, TILE*.94), new THREE.MeshBasicMaterial({color:0xFFFFFF, transparent:true, opacity:.35}));
+cursor.rotation.x = -Math.PI/2; cursor.visible = false; scene.add(cursor);
+const targetRing = new THREE.Mesh(new THREE.RingGeometry(.4,.6,20), new THREE.MeshBasicMaterial({color:0xFFF1D0, transparent:true, opacity:.8}));
+targetRing.rotation.x = -Math.PI/2; targetRing.visible = false; scene.add(targetRing);
+
+/* ---------------- tiles ---------------- */
+const tiles = [];
+function buildTiles(){
+  for(let r=0;r<N;r++) for(let c=0;c<N;c++){
+    const m = mesh(new THREE.BoxGeometry(TILE*.92, .14, TILE*.92), new THREE.MeshPhongMaterial({color:0xF7D894, flatShading:true}),
+      -HALF+TILE/2+c*TILE, .14, -HALF+TILE/2+r*TILE, scene, false);
+    tiles.push({r,c,m});
+  }
+}
+const tileCenter = (r,c) => ({x:-HALF+TILE/2+c*TILE, z:-HALF+TILE/2+r*TILE});
+function tileAt(x,z){ const c=Math.floor((x+HALF)/TILE), r=Math.floor((z+HALF)/TILE); return (c<0||c>=N||r<0||r>=N) ? null : {r,c}; }
+
+/* ---------------- game state ---------------- */
+let S = {name:"", paused:true};
+let soundOn = true, actx = null;
+function beep(freqs, dur=.12, type="triangle"){
+  if(!soundOn) return;
+  try{
+    actx = actx || new (window.AudioContext||window.webkitAudioContext)();
+    freqs.forEach((f,i)=>{ const o=actx.createOscillator(), g=actx.createGain(); o.type=type; o.frequency.value=f;
+      const t=actx.currentTime+i*dur; g.gain.setValueAtTime(.14,t); g.gain.exponentialRampToValueAtTime(.001,t+dur*1.6);
+      o.connect(g).connect(actx.destination); o.start(t); o.stop(t+dur*1.7); });
+  }catch(e){}
+}
+let toastT = 0;
+function toast(msg, ms=2600){ const t=$("#toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove("show"), ms); }
+
+function makeClues(t){
+  let cand = []; for(let r=0;r<N;r++) for(let c=0;c<N;c++) cand.push({r,c});
+  const out = [], L = i => COLS[i];
+  const add = (txt, f) => { out.push(txt); cand = cand.filter(f); };
+  add(t.r<5 ? "It's in the top half of the dig site, rows 1 to 5." : "It's in the bottom half of the dig site, rows 6 to 10.", p => (p.r<5)===(t.r<5));
+  add(t.c<5 ? "It's on the left side, in columns A to E." : "It's on the right side, in columns F to J.", p => (p.c<5)===(t.c<5));
+  add((t.r+1)%2===0 ? "Its row number is even." : "Its row number is odd.", p => p.r%2===t.r%2);
+  const half = t.c<5 ? [0,1,2,3,4] : [5,6,7,8,9];
+  const three = shuffle([t.c, ...shuffle(half.filter(x=>x!==t.c)).slice(0,2)]).sort((a,b)=>a-b);
+  add(`It's in column ${L(three[0])}, ${L(three[1])} or ${L(three[2])}.`, p => three.includes(p.c));
+  const notRow = () => {
+    const rows = [...new Set(cand.map(p=>p.r))].filter(r=>r!==t.r);
+    if(!rows.length) return add(`The seagulls agree: it's somewhere in row ${t.r+1}.`, ()=>true);
+    const r = pick(rows); add(pick([`The crabs dug all along row ${r+1}. Nothing there.`, `Row ${r+1} is empty, says the old fisher.`]), p => p.r!==r);
+  };
+  const notCol = () => {
+    const cs = [...new Set(cand.map(p=>p.c))].filter(c=>c!==t.c);
+    if(!cs.length) return add(`The parrot squawks: it's somewhere in column ${L(t.c)}!`, ()=>true);
+    const c = pick(cs); add(pick([`The parrot checked column ${L(c)}. Empty!`, `Nothing in column ${L(c)}, the turtles say.`]), p => p.c!==c);
+  };
+  notRow(); notCol(); notRow(); notCol();
+  return out;
+}
+
+function newHunt(){
+  const negs = shuffle(RIDDLES.filter(r=>r.neg)).slice(0,3);
+  const qs = shuffle([...negs, ...shuffle(RIDDLES.filter(r=>!r.neg)).slice(0, LANDMARKS.length-3)]);
+  S.treasure = {r:Math.floor(Math.random()*N), c:Math.floor(Math.random()*N)};
+  S.allClues = makeClues(S.treasure);
+  S.clues = []; S.shovels = SHOVELS; S.dug = {}; S.finds = []; S.over = false;
+  S.dismissed = null; S.target = null; S.digAnim = 0;
+  LANDMARKS.forEach((l,i)=>{ l.riddle = qs[i]; l.solved = false; setMarker(l); });
+  tiles.forEach(t=>{ t.m.material.color.set(0xF7D894); t.m.position.y = .14; t.m.scale.y = 1; if(t.extra){ scene.remove(t.extra); t.extra=null; } });
+  if(S.chest){ scene.remove(S.chest.g); S.chest = null; }
+  hero.position.set(0,0,HALF+6); hero.rotation.y = Math.PI;
+  updateHud();
+}
+
+function setMarker(l){
+  scene.remove(l.marker);
+  l.marker = l.solved ? textSprite("✓", {bg:"#FFC93C", color:"#5C3D10", size:80, scale:2}) : textSprite("?", {bg:"#FF6F59", color:"#FFF1D0", size:80, scale:2});
+  l.marker.position.set(l.x, l.markerY, l.z); scene.add(l.marker);
+  l.beam.material.color.set(l.solved ? 0xFFC93C : 0xFF6F59);
+  l.beam.material.opacity = l.solved ? .1 : .22;
+}
+
+function updateHud(){
+  $("#keysPill").textContent = `🗝️ ${S.clues.length} / ${LANDMARKS.length}`;
+  $("#shovelPill").textContent = `⛏️ ${S.shovels} shovel${S.shovels===1?"":"s"}`;
+  $("#scrapsBtn").textContent = `📜 Map scraps (${S.clues.length})`;
+}
+
+/* ---------------- riddles ---------------- */
+function openOverlay(id){ S.paused = true; $("#"+id).classList.add("open"); }
+function closeOverlay(id){ $("#"+id).classList.remove("open"); if(!document.querySelector(".overlay.open")) S.paused = false; }
+
+function openRiddle(i){
+  const l = LANDMARKS[i], card = $("#rcard");
+  const opts = shuffle([l.riddle.a, ...l.riddle.w]);
+  card.innerHTML = `<h3>${l.name}</h3><p class="q">${l.riddle.q}</p>
+    <div class="opts">${opts.map(o=>`<button class="opt">${o}</button>`).join("")}</div>
+    <p class="feedback" aria-live="polite"></p>
+    <div class="actions"><button class="btn quiet" id="rClose">Leave it for now</button></div>`;
+  card.querySelectorAll(".opt").forEach(b => b.onclick = () => {
+    if(b.textContent === l.riddle.a) return solve(i, b);
+    b.classList.add("wrong"); b.disabled = true;
+    card.querySelector(".feedback").textContent = pick(["Not quite. Try another one!","Hmm, not that one. Think again!","So close! Pick again."]);
+    beep([220,180],.1,"square");
+  });
+  $("#rClose").onclick = () => { S.dismissed = i; closeOverlay("riddle"); };
+  openOverlay("riddle"); beep([660,880],.08);
+}
+function solve(i, btn){
+  const l = LANDMARKS[i];
+  btn.classList.add("right");
+  const card = $("#rcard");
+  card.querySelectorAll(".opt").forEach(b=>b.disabled=true);
+  l.solved = true;
+  const clue = S.allClues[S.clues.length]; S.clues.push(clue);
+  setMarker(l); updateHud(); beep([523,659,784,1047],.1);
+  const left = LANDMARKS.length - S.clues.length;
+  setTimeout(()=>{
+    $("#rcard").innerHTML = `<div class="big">🗝️</div><h3>You found a map scrap!</h3><div class="clue-reveal">${clue}</div>
+      <p>${left ? `${left} more glowing spot${left===1?"":"s"} to find.` : "That's all of them! Head to the dig site in the middle of the island."}</p>
+      <div class="actions"><button class="btn" id="rDone">Keep exploring</button></div>`;
+    $("#rDone").onclick = () => { S.dismissed = i; closeOverlay("riddle"); };
+    $("#rDone").focus();
+  }, 600);
+}
+function openScraps(){
+  const remaining = LANDMARKS.filter(l=>!l.solved).map(l=>l.name);
+  $("#scard").innerHTML = `<h3>📜 Map scraps</h3>` +
+    (S.clues.length ? `<ol class="scrolllist">${S.clues.map(c=>`<li>${c}</li>`).join("")}</ol>` : `<p class="muted">No scraps yet. Walk to a glowing spot to find a riddle.</p>`) +
+    (remaining.length ? `<p class="muted" style="margin-top:10px">Still to visit: ${remaining.join(", ")}</p>` : "") +
+    `<div class="actions"><button class="btn" id="sClose">Back to exploring</button></div>`;
+  $("#sClose").onclick = () => closeOverlay("scraps");
+  openOverlay("scraps");
+}
+
+/* ---------------- digging ---------------- */
+const particles = [];
+function burst(x,y,z,color,count=12,speed=4,size=.12,geo){
+  for(let i=0;i<count;i++){
+    const m = mesh(geo || new THREE.BoxGeometry(size,size,size), color, x,y,z, scene, false);
+    particles.push({m, v:new THREE.Vector3(rnd(-1,1)*speed*.5, rnd(.6,1)*speed, rnd(-1,1)*speed*.5), life:rnd(.7,1.2)});
+  }
+}
+function floatSprite(txt,x,z){
+  const s = textSprite(txt, {size:84, scale:1.4}); s.position.set(x,1.2,z); scene.add(s);
+  particles.push({m:s, v:new THREE.Vector3(0,1.4,0), life:1.4, sprite:true, nograv:true});
+}
+
+function dig(){
+  const t = tileAt(hero.position.x, hero.position.z);
+  if(!t || S.over || S.dug[t.r+","+t.c] || S.shovels<=0) return;
+  S.dug[t.r+","+t.c] = true; S.shovels--; updateHud();
+  S.digAnim = .5;
+  const tile = tiles[t.r*N+t.c], {x,z} = tileCenter(t.r,t.c);
+  burst(x,.3,z,0xE8BE6A,14,5);
+  beep([180,140],.07,"sawtooth");
+  const d = Math.abs(t.r-S.treasure.r) + Math.abs(t.c-S.treasure.c);
+  tile.m.position.y = .03; tile.m.scale.y = .3;
+  if(d===0){ S.over = true; tile.m.material.color.set(0x5C3D10); raiseChest(t, true); return; }
+  const lvl = d<=2?1 : d<=4?2 : d<=7?3 : 4;
+  tile.m.material.color.set([0,0xFF6F59,0xFFA45C,0x9FD9E8,0x5BA8C9][lvl]);
+  const mound = mesh(new THREE.SphereGeometry(.35,6,4), 0xE0B060, x+.45,.1,z-.45, scene, false); mound.scale.y=.5; tile.extra = mound;
+  toast(`${COLS[t.c]}${t.r+1}: ` + ["","Sizzling hot! So close!","Warm! Getting closer.","Chilly. Try somewhere else.","Freezing! Way off."][lvl], 2200);
+  if(Math.random() < .2){ const f = pick(TRINKETS); S.finds.push(f); floatSprite(f,x,z); beep([880,1175],.07); }
+  if(S.shovels === 0) setTimeout(lose, 900);
+}
+
+function buildChest(){
+  const g = new THREE.Group();
+  mesh(new THREE.BoxGeometry(1.3,.7,.9), 0xA0522D, 0,.35,0, g);
+  mesh(new THREE.BoxGeometry(1.34,.12,.94), 0xFFC93C, 0,.5,0, g);
+  const lid = group(0,.7,-.45,g);
+  mesh(new THREE.BoxGeometry(1.3,.35,.9), 0xB5673A, 0,.17,.45, lid);
+  mesh(new THREE.BoxGeometry(1.34,.08,.94), 0xFFC93C, 0,.2,.45, lid);
+  mesh(new THREE.BoxGeometry(.2,.25,.06), 0xFFC93C, 0,.6,.47, g);
+  const glow = new THREE.Mesh(new THREE.SphereGeometry(.45,12,8), new THREE.MeshBasicMaterial({color:0xFFE38A}));
+  glow.position.y = .65; glow.visible = false; g.add(glow);
+  return {g, lid, glow};
+}
+function raiseChest(t, won){
+  const {x,z} = tileCenter(t.r,t.c);
+  const ch = buildChest(); ch.g.position.set(x,-1,z); scene.add(ch.g);
+  S.chest = {...ch, t:0, won};
+}
+function updateChest(dt){
+  const ch = S.chest; if(!ch || ch.done) return;
+  ch.t += dt;
+  ch.g.position.y = Math.min(.15, -1 + ch.t*1.4);
+  ch.g.rotation.y = Math.sin(ch.t*2)*.15;
+  if(ch.won && ch.t > .9){
+    ch.lid.rotation.x = -Math.min(1.9, (ch.t-.9)*4);
+    if(!ch.glow.visible){ ch.glow.visible = true; burst(ch.g.position.x,1,ch.g.position.z,0xFFC93C,28,7,.18,new THREE.CylinderGeometry(.14,.14,.04,10)); beep([392,523,659,784,1047,1319],.11); }
+  }
+  if(ch.t > 2.6){ ch.done = true; ch.won ? win() : null; }
+}
+
+function win(){
+  const used = SHOVELS - S.shovels, stars = used<=3?3 : used<=7?2 : 1;
+  const coins = 200 + Math.floor(Math.random()*600);
+  $("#ecard").innerHTML = `<div class="big">💰</div><h3 style="font-size:1.7rem">You found it, ${S.name}!</h3>
+    <div class="stars" aria-label="${stars} out of 3 stars">${"★".repeat(stars)}${"☆".repeat(3-stars)}</div>
+    <p style="margin:10px 0">Inside the chest: <strong>${coins} gold coins</strong> and ${pick(TREASURES)}.</p>
+    <p class="muted">You used ${used} shovel${used===1?"":"s"} and solved ${S.clues.length} of ${LANDMARKS.length} riddles.${S.finds.length?`<br>Beach finds: ${S.finds.join(" ")}`:""}</p>
+    <div class="actions"><button class="btn" id="again">Play a new hunt</button></div>`;
+  $("#again").onclick = () => { closeOverlay("endo"); newHunt(); };
+  openOverlay("endo");
+  if(!matchMedia("(prefers-reduced-motion: reduce)").matches) for(let i=0;i<30;i++){
+    const s=document.createElement("span"); s.className="coin"; s.textContent=pick(["🪙","✨","💎"]);
+    s.style.left=Math.random()*100+"vw"; s.style.animationDuration=(1.8+Math.random()*1.8)+"s"; s.style.animationDelay=(Math.random()*.8)+"s";
+    document.body.appendChild(s); setTimeout(()=>s.remove(),4500);
+  }
+}
+function lose(){
+  S.over = true;
+  const {r,c} = S.treasure;
+  raiseChest({r,c}, false);
+  setTimeout(()=>{
+    $("#ecard").innerHTML = `<div class="big">⛏️</div><h3>Out of shovels!</h3>
+      <p>The chest was buried at <strong>${COLS[c]}${r+1}</strong>. Look, it's popping up out of the sand!</p>
+      <p class="muted" style="margin-top:8px">Tip: solve more riddles before you dig. Every scrap makes the search smaller.</p>
+      <div class="actions"><button class="btn" id="again">Try a new hunt</button><button class="btn quiet" id="look">Look around</button></div>`;
+    $("#again").onclick = () => { closeOverlay("endo"); newHunt(); };
+    $("#look").onclick = () => closeOverlay("endo");
+    openOverlay("endo");
+  }, 1800);
+}
+
+/* ---------------- input ---------------- */
+const keys = {};
+addEventListener("keydown", e => {
+  if(e.target.tagName === "INPUT") return;
+  keys[e.key.toLowerCase()] = true;
+  if((e.key===" "||e.key==="Enter") && $("#action").classList.contains("show") && !S.paused){ e.preventDefault(); $("#action").click(); }
+  if(e.key==="Escape"){ ["riddle","scraps"].forEach(id=>{ if($("#"+id).classList.contains("open")){ if(id==="riddle") S.dismissed=S.near; closeOverlay(id);} }); }
+});
+addEventListener("keyup", e => { keys[e.key.toLowerCase()] = false; });
+
+const joy = {x:0, y:0, active:false, id:null};
+const joyEl = $("#joy"), knob = $("#knob");
+function joyMove(e){
+  const r = joyEl.getBoundingClientRect(), cx = r.left+r.width/2, cy = r.top+r.height/2;
+  let dx = e.clientX-cx, dy = e.clientY-cy; const max = r.width/2, d = Math.hypot(dx,dy);
+  if(d > max){ dx = dx/d*max; dy = dy/d*max; }
+  knob.style.transform = `translate(${dx}px,${dy}px)`;
+  joy.x = dx/max; joy.y = dy/max;
+}
+joyEl.addEventListener("pointerdown", e => { joy.active = true; joy.id = e.pointerId; joyEl.setPointerCapture(e.pointerId); joyMove(e); S.target = null; });
+joyEl.addEventListener("pointermove", e => { if(joy.active && e.pointerId===joy.id) joyMove(e); });
+const joyEnd = () => { joy.active = false; joy.x = joy.y = 0; knob.style.transform = ""; };
+joyEl.addEventListener("pointerup", joyEnd); joyEl.addEventListener("pointercancel", joyEnd);
+
+const ray = new THREE.Raycaster(), ndc = new THREE.Vector2(), ground = new THREE.Plane(new THREE.Vector3(0,1,0), 0);
+let down = null;
+canvas.addEventListener("pointerdown", e => { down = {x:e.clientX, y:e.clientY, t:performance.now()}; });
+canvas.addEventListener("pointerup", e => {
+  if(!down || S.paused) return;
+  const moved = Math.hypot(e.clientX-down.x, e.clientY-down.y), dt = performance.now()-down.t; down = null;
+  if(moved > 12 || dt > 600) return;
+  ndc.set(e.clientX/innerWidth*2-1, -(e.clientY/innerHeight)*2+1);
+  ray.setFromCamera(ndc, camera);
+  const hits = ray.intersectObjects(LANDMARKS.map(l=>l.group), true);
+  let p;
+  if(hits.length){ let o = hits[0].object; const l = LANDMARKS.find(L => { let x=o; while(x){ if(x===L.group) return true; x=x.parent; } return false; }); p = new THREE.Vector3(l.x,0,l.z); }
+  else { p = new THREE.Vector3(); if(!ray.ray.intersectPlane(ground, p)) return; }
+  const t = tileAt(p.x, p.z);
+  if(t){ const c = tileCenter(t.r,t.c); p.x = c.x; p.z = c.z; }
+  const d = Math.hypot(p.x,p.z); if(d > 41.5){ p.x *= 41.5/d; p.z *= 41.5/d; }
+  S.target = p; targetRing.position.set(p.x,.08,p.z); targetRing.visible = true;
+});
+
+$("#action").onclick = () => {
+  if(S.paused) return;
+  if(S.actionKind === "riddle") openRiddle(S.near);
+  else if(S.actionKind === "dig") dig();
+  else if(S.actionKind === "new") newHunt();
+};
+$("#scrapsBtn").onclick = openScraps;
+$("#soundBtn").onclick = () => { soundOn=!soundOn; $("#soundBtn").textContent = soundOn?"🔊":"🔇"; $("#soundBtn").setAttribute("aria-label", soundOn?"Turn sound off":"Turn sound on"); };
+$("#startBtn").onclick = () => {
+  S.name = $("#nameIn").value.trim() || "Explorer";
+  closeOverlay("start"); beep([392,523,659],.1);
+  toast(`Welcome, ${S.name}! Walk to a glowing spot to find your first riddle.`, 4000);
+  setTimeout(()=>$("#hint").style.display="none", 9000);
+};
+$("#nameIn").addEventListener("keydown", e => { if(e.key==="Enter") $("#startBtn").click(); });
+addEventListener("resize", () => { renderer.setSize(innerWidth, innerHeight); camera.aspect = innerWidth/innerHeight; camera.updateProjectionMatrix(); });
+
+/* ---------------- loop ---------------- */
+const clock = new THREE.Clock();
+let walkPhase = 0, lastAction = "";
+const camPos = new THREE.Vector3();
+
+function step(){
+  const dt = Math.min(clock.getDelta(), .05), t = clock.elapsedTime;
+  animated.forEach(f => f(t,dt));
+  LANDMARKS.forEach((l,i) => { l.marker.position.y = l.markerY + Math.sin(t*2+i)*.3; });
+
+  let mx = 0, mz = 0, moving = false;
+  if(!S.paused){
+    if(keys["arrowleft"]||keys["a"]) mx -= 1; if(keys["arrowright"]||keys["d"]) mx += 1;
+    if(keys["arrowup"]||keys["w"]) mz -= 1; if(keys["arrowdown"]||keys["s"]) mz += 1;
+    if(mx||mz){ const l=Math.hypot(mx,mz); mx/=l; mz/=l; S.target=null; }
+    else if(joy.active && Math.hypot(joy.x,joy.y) > .15){ mx = joy.x; mz = joy.y; S.target = null; }
+    else if(S.target){
+      const dx = S.target.x-hero.position.x, dz = S.target.z-hero.position.z, d = Math.hypot(dx,dz);
+      if(d < .15){ S.target = null; } else { mx = dx/d; mz = dz/d; if(d < .6){ mx*=d/.6; mz*=d/.6; } }
+    }
+    if(!S.target) targetRing.visible = false;
+    if(S.digAnim > 0){ mx = mz = 0; }
+    const sp = Math.hypot(mx,mz);
+    if(sp > .01){
+      moving = true;
+      const prev = hero.position.clone();
+      hero.position.x += mx*8*dt; hero.position.z += mz*8*dt;
+      for(const c of colliders){
+        const dx = hero.position.x-c.x, dz = hero.position.z-c.z, d = Math.hypot(dx,dz), min = c.r+.5;
+        if(d < min && d > 0){ hero.position.x = c.x+dx/d*min; hero.position.z = c.z+dz/d*min; }
+      }
+      const d0 = Math.hypot(hero.position.x, hero.position.z);
+      if(d0 > 42){ hero.position.x *= 42/d0; hero.position.z *= 42/d0; }
+      if(S.target && hero.position.distanceTo(prev) < sp*8*dt*.15){ S.target = null; } // stuck
+      const want = Math.atan2(mx, mz);
+      let diff = want - hero.rotation.y; diff = Math.atan2(Math.sin(diff), Math.cos(diff));
+      hero.rotation.y += diff * Math.min(1, dt*12);
+      walkPhase += dt*sp*12;
+    }
+  }
+  // limbs
+  const sw = moving ? Math.sin(walkPhase)*.7 : 0;
+  H.legL.rotation.x = sw; H.legR.rotation.x = -sw; H.armL.rotation.x = -sw*.8;
+  if(S.digAnim > 0){
+    S.digAnim -= dt; H.shovel.visible = true;
+    H.armR.rotation.x = -1.2 + Math.sin((.5-S.digAnim)*18)*.9;
+    H.body.position.y = Math.abs(Math.sin((.5-S.digAnim)*18))*.12;
+  } else {
+    H.armR.rotation.x = sw*.8; H.body.position.y = moving ? Math.abs(Math.sin(walkPhase))*.08 : Math.sin(t*2)*.02;
+    H.shovel.visible = !!tileAt(hero.position.x, hero.position.z);
+  }
+
+  // proximity
+  S.near = null;
+  LANDMARKS.forEach((l,i) => { if(!l.solved && Math.hypot(hero.position.x-l.x, hero.position.z-l.z) < l.r+2.4) S.near = i; });
+  if(S.near === null) S.dismissed = null;
+  if(!S.paused && S.near !== null && S.dismissed !== S.near){ S.target = null; openRiddle(S.near); }
+
+  const tt = tileAt(hero.position.x, hero.position.z);
+  if(tt){ const c = tileCenter(tt.r,tt.c); cursor.position.set(c.x,.24,c.z); cursor.visible = !S.dug[tt.r+","+tt.c]; } else cursor.visible = false;
+
+  let kind = "", label = "";
+  if(S.near !== null){ kind = "riddle"; label = `📜 Read the ${LANDMARKS[S.near].name} riddle`; }
+  else if(tt && !S.over && !S.dug[tt.r+","+tt.c]){ kind = "dig"; label = `⛏️ Dig at ${COLS[tt.c]}${tt.r+1}`; }
+  else if(S.over && S.chest && S.chest.done && !S.chest.won){ kind = "new"; label = "🗺️ Start a new hunt"; }
+  S.actionKind = kind;
+  const key = kind+label+S.paused;
+  if(key !== lastAction){ lastAction = key; const a = $("#action"); a.textContent = label; a.classList.toggle("show", !!kind && !S.paused); }
+
+  // particles
+  for(let i=particles.length-1;i>=0;i--){
+    const p = particles[i]; p.life -= dt;
+    if(!p.nograv) p.v.y -= 15*dt;
+    p.m.position.addScaledVector(p.v, dt);
+    if(p.m.position.y < .1 && !p.nograv){ p.m.position.y = .1; p.v.multiplyScalar(.5); }
+    if(p.sprite) p.m.material.opacity = Math.min(1, p.life);
+    else p.m.rotation.x += dt*5;
+    if(p.life <= 0){ scene.remove(p.m); particles.splice(i,1); }
+  }
+  updateChest(dt);
+  targetRing.rotation.z += dt*2;
+
+  // camera
+  const zoom = camera.aspect < .8 ? 1.35 : 1;
+  camPos.set(hero.position.x, 14*zoom, hero.position.z + 13*zoom);
+  camera.position.lerp(camPos, Math.min(1, dt*4));
+  camera.lookAt(hero.position.x, 1, hero.position.z - 1);
+  sun.position.set(hero.position.x+15, 30, hero.position.z+8); sun.target.position.copy(hero.position);
+
+  renderer.render(scene, camera);
+  requestAnimationFrame(step);
+}
+
+function init(){
+  buildWorld(); buildTiles(); newHunt();
+  camera.position.set(0, 30, HALF+30);
+  $("#loading").style.display = "none";
+  $("#startBtn").disabled = false;
+  step();
+}
+(document.fonts ? document.fonts.ready : Promise.resolve()).then(init);
+</script>
+
+</body>
+</html>
